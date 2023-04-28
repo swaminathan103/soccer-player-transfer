@@ -88,6 +88,7 @@ function registerPlayer(address playerAdd, uint256 playerId) external  {
     playerAddress[playerId] = playerAdd;
     playerOwners[playerId] = msg.sender;
     _safeMint(msg.sender, playerId);
+    playerOnSale[playerId] = true;
 }
 
 function unRegisterPlayer(address player) external onlyOwner  {
