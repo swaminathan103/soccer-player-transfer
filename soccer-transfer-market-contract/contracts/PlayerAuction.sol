@@ -13,7 +13,7 @@ event PlayerUnregistered(address indexed player);
 event PlayerPutOnSale(uint256 indexed playerId);
 event BidPlaced(address indexed bidder, uint256 indexed playerId, uint256 amount);
 event BidAccepted(address indexed seller, address indexed buyer, uint256 indexed playerId, uint256 amount);
-event BidRejected(address indexed seller, address indexed buyer, uint256 indexed playerId, uint256 amount);
+event BidRejected(address indexed buyer, uint256 indexed playerId, uint256 amount);
 
 
 
@@ -78,6 +78,7 @@ modifier onlyOwnerOf(uint256 playerId) {
 
 function registerClub() external {
     registeredClubs[msg.sender] = true;
+    emit ClubRegistered(msg.sender);
 }
 
 function registerPlayer(address playerAdd, uint256 playerId) external  {
@@ -89,23 +90,28 @@ function registerPlayer(address playerAdd, uint256 playerId) external  {
     playerOwners[playerId] = msg.sender;
     _safeMint(msg.sender, playerId);
     playerOnSale[playerId] = true;
+    emit PlayerRegistered(playerAdd, playerId);
+    emit PlayerPutOnSale(playerId);
 }
 
 function unRegisterPlayer(address player) external onlyOwner  {
     require(registeredPlayers[player] ," Not a registered player");
     numPlayers--;
     registeredPlayers[player] = false;
+    emit PlayerUnregistered(player);
 }
 
 function putPlayerOnSale(uint256 playerId) external  {
     require(registeredPlayers[playerAddress[playerId]], "Player not registered.");
     require(msg.sender == playerOwners[playerId], "You are not the owner of this player.");
     playerOnSale[playerId] = true;
+    emit PlayerPutOnSale(playerId);
 }
 
 function placeBid(uint256 playerId) external payable onlyPlayerOnSale(playerId) {
     require(msg.sender != playerOwners[playerId], "Player owner cant place bid");
     bids[playerId].push(Bid(msg.sender, msg.value, BidState.Bidded));
+    emit BidPlaced(msg.sender, playerId,  msg.value);
 }
 
 function acceptBid(uint256 playerId, address buyer, uint256 amount) external  onlyPlayerOnSale(playerId) onlyOwnerOf(playerId) {
@@ -120,12 +126,16 @@ function acceptBid(uint256 playerId, address buyer, uint256 amount) external  on
     playerOwners[playerId] = buyerAdd;
     playerOnSale[playerId] = false;
     sendRefundtoAddresses(playerId);
+    emit BidAccepted(seller, buyer, playerId,  amount);
+
 }
 
 function rejectBid(uint256 playerId, address buyer, uint256 amount) external onlyPlayerOnSale(playerId) onlyOwnerOf(playerId) {
     uint256 bidIndex = findBidIndex(buyer, playerId, amount);
     bids[playerId][bidIndex].bidStatus = BidState.Rejected;
     payable(bids[playerId][bidIndex].bidder).transfer(amount);
+    emit BidRejected( buyer, playerId,  amount);
+
 }   
 
 
