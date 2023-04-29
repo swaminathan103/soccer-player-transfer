@@ -120,6 +120,11 @@
                 let responseBidsButtons = document.getElementsByClassName("response-bid-button")
                 let contractBidsButtons = document.getElementsByClassName("contract-bid-button")
                 let playerContractBidsButtons = document.getElementsByClassName("player-contract-bid-button")
+                let proposeContractSubmit = document.getElementById('proposalForm')
+
+                proposeContractSubmit.onsubmit = controller.proposeContract
+
+
                 if (yourBidsButtons.length > 0) {
                     Array.from(yourBidsButtons).forEach((button) => {
                         button.onclick = controller.submitBid
@@ -446,6 +451,7 @@
                         form: user.form,
                         age: user.age,
                         market_value: user.base_selling_price,
+                        salary: user.salary,
                         contract_length: user.contract_length
                     }
 
@@ -475,7 +481,17 @@
                         }
                     })
 
-                    // TODO: API for contract extension details
+                    let endpoint = `extension/${model.currentId}`
+                    let contractData = await sendRequest(endpoint)
+                    if (contractData.length > 0) {
+                        contractData.forEach((contract) => {
+                            newContractData.push({
+                                contract_id: contract.id,
+                                length: contract.length,
+                                salary: contract.salary_increase
+                            })
+                        })
+                    }
 
                 } else {
                     let bidsData = await sendRequest(`/bids/player/${model.currentId}`)
@@ -500,7 +516,7 @@
                 if (newContractData.length == 0) {
                     pageData.push({
                         title: "Proposed Contract Details",
-                        value: "No contract proposed by any club yet!"
+                        value: "No contract proposed yet!"
                     })
                 } else {
                     newContractData.forEach ((contract) => {
@@ -625,7 +641,6 @@
             },
 
             contractBidClicked: async function(e) {
-                // TODO: Send API request
                 let title = e.target.innerHTML
                 let bidContainer = e.target.parentElement.parentElement
                 let playerId = parseInt(bidContainer.querySelector("#id-value").innerText)
@@ -634,8 +649,8 @@
                     // TODO:
 
                 } else if (title == "Propose New Contract") {
-                    // TODO:
-
+                    let proposeContractSubmit = document.getElementById('submitProposalBtn')
+                    proposeContractSubmit.setAttribute("data-player-id", playerId)
                 } else {
                     // Put player for Sale
                     const playerNft = await model.contracts.PlayerNFT.deployed();
@@ -663,7 +678,69 @@
                     await controller.sendResponseToBid(title, playerId, bidValue, buyerId, buyerAddress, bidId)
                 } else {
                     // It is a contract extension
-                    // TODO: extend contract
+                    let contractId = parseInt(bidContainer.querySelector("#contract_id-value").innerText)
+                    if (title.toLowerCase() == "accept") {
+                        let length = parseInt(bidContainer.querySelector("#length-value").innerText)
+                        let salary = parseInt(bidContainer.querySelector("#salary-value").innerText)
+                        let playerEndpoint = `players/${model.currentId}`
+                        let contractEndpoint = `extension/${contractId}`
+                        let playerBody = {
+                            contract_length: length,
+                            salary: salary
+                        }
+
+                        let contractBody = {
+                            active: false
+                        }
+
+                        try {
+                            await sendRequest(playerEndpoint, playerBody, "PUT")
+                            await sendRequest(contractEndpoint, contractBody, "PUT")
+                            controller.throwToast("Contract Accepted!", TOAST_TYPE.success)
+                            view.reload()
+                        } catch (error) {
+                            controller.throwToast("Unable to accept contract " + error , TOAST_TYPE.error)
+                        }
+                    } else {
+                        let contractEndpoint = `extension/${contractId}`
+                        let contractBody = {
+                            active: false
+                        }
+                        try {
+                            await sendRequest(contractEndpoint, contractBody, "PUT")
+                            controller.throwToast("Contract Rejected!", TOAST_TYPE.success)
+                            view.reload()
+                        } catch (error) {
+                            controller.throwToast("Unable to reject contract " + error , TOAST_TYPE.error)
+                        }
+                    }
+                }
+            },
+
+            proposeContract: async function (e) {
+                e.preventDefault()
+                let closeButton = document.getElementById("closeProposalBtn")
+                let proposeContractSubmit = document.getElementById('submitProposalBtn')
+                let playerId = proposeContractSubmit.getAttribute('data-player-id');
+                const salary = document.getElementById("salaryInput").value;
+                const length = document.getElementById("lengthInput").value;
+                console.log("Player ID: " + playerId + ", Salary: " + salary + ", Length: " + length);
+
+                let endpoint = `extension`
+                let body = {
+                    player_id: playerId,
+                    club_id: model.currentId,
+                    length: length,
+                    salary_increase: salary
+                }
+
+                try {
+                    await sendRequest(endpoint, body, "POST")
+                    controller.throwToast("Contract proposed! Waiting for player to accept!", TOAST_TYPE.success)
+                    closeButton.click()
+                    document.getElementById('proposalForm').reset();
+                } catch (error) {
+                    controller.throwToast("Unable to propose contract + " + error, TOAST_TYPE.error)
                 }
             }
         }
@@ -811,7 +888,7 @@
                   } else if (pageName === 'yourplayers') {
                     buttonsHtml = `
                         <div class = "contract-bid-container">
-                            <button id="contract-accept-${ind}" type="button" class="contract-bid-button btn btn-success">Propose New Contract</button>
+                            <button id="contract-accept-${ind}" type="button"  class="contract-bid-button btn btn-success" data-bs-toggle="modal" data-bs-target="#proposalModal">Propose New Contract</button>
                             <button id="contract-sale-${ind}" type="button" class="contract-bid-button btn btn-warning">Place Player for Sale</button>
                             <button id="contract-reject-${ind}" type="button" class="contract-bid-button btn btn-danger">Terminate Contract</button>
                         </div>

@@ -6,7 +6,7 @@ const pool = mysql.createPool({
   host: 'localhost',
   user: 'root',
   password: 'root',
-  database: 'your_database_name',
+  database: 'soccer-player-transfer',
   connectionLimit: 10
 });
 
@@ -27,11 +27,11 @@ const getAllExtensions = async (req, res) => {
 const getExtensionById = async (req, res) => {
   const { id } = req.params;
   try {
-    const extension = await pool.query('SELECT * FROM contract_extensions WHERE id = ?', [id]);
+    const extension = await pool.query('SELECT * FROM contract_extensions WHERE player_id = ? AND active = 1', [id]);
     if (extension.length) {
-      res.json(extension[0]);
+      res.json(extension);
     } else {
-      res.status(404).json({ message: 'Extension not found' });
+      res.json([]);
     }
   } catch (error) {
     console.error(error);
