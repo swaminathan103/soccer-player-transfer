@@ -61,17 +61,6 @@ modifier onlyPlayerOnSale(uint256 playerId) {
     _;
 }
 
-modifier onlyPlayerOrClub(uint256 playerId) {
-    require(registeredPlayers[msg.sender] || registeredClubs[msg.sender], 
-    "This player is not on sale.");
-    _;
-}
-
-modifier onlyPlayerNotTransferred(uint256 playerId) {
-    require(!playerTransferred[playerId], "This player has already been transferred.");
-    _;
-}
-
 modifier onlyOwnerOf(uint256 playerId) {
     require(msg.sender == playerOwners[playerId], "Not owner of the player");
     _;
@@ -102,9 +91,8 @@ function unRegisterPlayer(address player) external onlyOwner  {
     emit PlayerUnregistered(player);
 }
 
-function putPlayerOnSale(uint256 playerId) external  {
+function putPlayerOnSale(uint256 playerId) external onlyOwnerOf(playerId)  {
     require(registeredPlayers[playerAddress[playerId]], "Player not registered.");
-    require(msg.sender == playerOwners[playerId], "You are not the owner of this player.");
     playerOnSale[playerId] = true;
     emit PlayerPutOnSale(playerId);
 }
@@ -151,8 +139,7 @@ function findBidIndex(address bidder, uint256 playerId, uint256 amt) public view
 }
 
 
-function transferOwnership(uint256 playerId) external {
-    require(msg.sender == playerOwners[playerId], "You are not the owner of this player.");
+function transferOwnership(uint256 playerId) external onlyOwnerOf(playerId) {
     transferFrom(playerOwners[playerId], playerAddress[playerId], playerId);
     playerOnSale[playerId] = true;
     emit playerOwnershipTransfered(playerId);
@@ -184,3 +171,5 @@ function transferOwnership(uint256 playerId) external {
 
     
 }
+
+list all the modifiers in the above code the below format

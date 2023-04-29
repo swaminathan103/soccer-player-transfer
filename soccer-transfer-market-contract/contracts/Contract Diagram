@@ -1,0 +1,37 @@
+Contract Diagram
+
+DATA
+address public owner;
+mapping(address => bool) public registeredClubs;
+mapping(address => bool) public registeredPlayers;
+mapping(uint256 => address) public playerAddress;
+mapping(uint256 => uint256) public playerPrices;
+mapping(uint256 => address) public playerOwners;
+mapping(uint256 => bool) public playerOnSale;
+mapping(uint256 => bool) public playerTransferred;
+mapping(uint256 => Bid[]) public bids;
+uint256 public numPlayers;
+
+MODFIERS
+onlyOwner()
+onlyOwnerOf(playerId)
+onlyClub()
+onlyPlayers()
+onlyPlayerOnSale(playerId)
+
+FUNCTIONS
+registerClub() external
+registerPlayer(address playerAdd, uint256 playerId) external
+unRegisterPlayer(address player) external onlyOwner
+putPlayerOnSale(uint256 playerId) external onlyOwnerOf(playerId)
+placeBid(uint256 playerId) external payable onlyPlayerOnSale(playerId)
+acceptBid(uint256 playerId, address buyer, uint256 amount) external  onlyPlayerOnSale(playerId) onlyOwnerOf(playerId)
+rejectBid(uint256 playerId, address buyer, uint256 amount) external onlyPlayerOnSale(playerId) onlyOwnerOf(playerId)
+findBidIndex(address bidder, uint256 playerId, uint256 amt) public view returns (uint256)
+transferOwnership(uint256 playerId) external onlyOwnerOf(playerId)
+sendRefundtoAddresses(uint256 playerId) internal 
+getPlayerOwner(uint256 playerId) external view returns (address)
+getAllBids(uint256 playerId) public view returns (Bid[] memory)
+
+
+
