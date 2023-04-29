@@ -11,6 +11,7 @@ event ClubRegistered(address indexed club);
 event PlayerRegistered(address indexed player, uint256 indexed playerId);
 event PlayerUnregistered(address indexed player);
 event PlayerPutOnSale(uint256 indexed playerId);
+event playerOwnershipTransfered(uint256 indexed playerId);
 event BidPlaced(address indexed bidder, uint256 indexed playerId, uint256 amount);
 event BidAccepted(address indexed seller, address indexed buyer, uint256 indexed playerId, uint256 amount);
 event BidRejected(address indexed buyer, uint256 indexed playerId, uint256 amount);
@@ -149,6 +150,15 @@ function findBidIndex(address bidder, uint256 playerId, uint256 amt) public view
     revert("Bid not found");
 }
 
+
+function transferOwnership(uint256 playerId) external {
+    require(msg.sender == playerOwners[playerId], "You are not the owner of this player.");
+    transferFrom(playerOwners[playerId], playerAddress[playerId], playerId);
+    playerOnSale[playerId] = true;
+    emit playerOwnershipTransfered(playerId);
+    emit PlayerPutOnSale(playerId);
+
+}
 
 
 
