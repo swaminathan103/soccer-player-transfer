@@ -12,6 +12,7 @@
             currentId: null,
             contracts: {},
             userType: null,
+            currentPage: "",
             pageTitleMap: {
               clubs: {
                 home: 'Home',
@@ -72,7 +73,7 @@
                 await ethereum.enable();
                 if (window.ethereum) {
                     let accounts = await ethereum.request({ method: 'eth_requestAccounts' })
-                    model.currentAccount = accounts[0];
+                    model.currentAccount = web3.utils.toChecksumAddress(accounts[0]);;
                     console.log('Current account:', model.currentAccount);
                 } else {
                     console.error('No MetaMask Ethereum provider found!');
@@ -118,6 +119,7 @@
                 let yourBidsButtons = document.getElementsByClassName("your-bid-button")
                 let responseBidsButtons = document.getElementsByClassName("response-bid-button")
                 let contractBidsButtons = document.getElementsByClassName("contract-bid-button")
+                let playerContractBidsButtons = document.getElementsByClassName("player-contract-bid-button")
                 if (yourBidsButtons.length > 0) {
                     Array.from(yourBidsButtons).forEach((button) => {
                         button.onclick = controller.submitBid
@@ -135,6 +137,20 @@
                         button.onclick = controller.contractBidClicked
                     })
                 }
+
+                if (playerContractBidsButtons.length > 0) {
+                    Array.from(playerContractBidsButtons).forEach((button) => {
+                        button.onclick = controller.playerContractBidClicked
+                    })
+                }
+            },
+
+            showEmittedEvents: function (result) {
+                result.logs.forEach((log) => {
+                    if (log.event.toLowerCase() != "transfer") {
+                        this.throwToast("EVENT - " + log.event)
+                    }
+                })
             },
 
             throwToast: function(msg, type) {
@@ -189,6 +205,10 @@
                     {from: model.currentAccount}
                 ).catch((e) => errorMsg = e)
 
+                if (result && result.logs.length > 0) {
+                    this.showEmittedEvents(result)
+                }
+
                 if (errorMsg == null) {
                     model.userType = USER_TYPE.club
                     await this.setCurrentId()
@@ -233,6 +253,10 @@
                     response.id,
                     {from:model.currentAccount}
                 ).catch((e) => errorMsg = e)
+
+                if (result && result.logs.length > 0) {
+                    this.showEmittedEvents(result)
+                }
 
                 if (errorMsg == null) {
                     model.userType = USER_TYPE.player
@@ -280,7 +304,7 @@
                 // await playerNft.acceptBid(10, "0x76B90D572e47e974EA794cd3b51dc7f5f702A611", web3.utils.toWei('0', 'ether'), {from:model.currentAccount})
                 // console.log(result);
                 // await playerNft.unregisterClub(model.currentAccount, {from: "0xBFf81b126876fAdadf69378d8856a28FdC554Dc0"})
-                // await playerNft.unregisterPlayer(model.currentAccount, {from: "0xBFf81b126876fAdadf69378d8856a28FdC554Dc0"})
+                // await playerNft.unRegisterPlayer(model.currentAccount, {from: "0xBFf81b126876fAdadf69378d8856a28FdC554Dc0"})
                 let player = await playerNft.methods['registeredPlayers(address)']
                                     .call(model.currentAccount)
                                     .catch(() => null)
@@ -310,6 +334,7 @@
                 let userType = model.userType
                 let endpoint = `${userType}/${model.currentId}`
                 let userData = await sendRequest(endpoint)
+                let bids = await sendRequest(`/bids/club/${model.currentId}`)
                 await controller.getCurrentWalletBalance()
                 let pageData = [{
                     title: userData.name,
@@ -334,7 +359,7 @@
                     },
                     {
                         title: "Pending Bids",
-                        value: 3
+                        value: bids.length || 0
                     }
                     )
                 }
@@ -354,7 +379,7 @@
 
             getMarketPlaceData: async function(pageName) {
                 let userType = model.userType
-                let endpoint = `players`
+                let endpoint = `players/not-in-club/${model.currentId}`
                 let userData = await sendRequest(endpoint)
                 let pageData = []
 
@@ -378,20 +403,21 @@
 
             getBidsReceivedData: async function(pageName) {
                 let userType = model.userType
-                let endpoint = `bids`
+                let endpoint = `bids/club/${model.currentId}`
                 let pageData = []
-                let userData = BIDS
+                let bids = await sendRequest(endpoint)
 
-                userData.forEach((user) => {
+                bids.forEach((bid) => {
                     let content = {
-                        id: user.id,
-                        player_name: user.name,
-                        club_id: user.club_id,
-                        club: user.club_name,
-                        age: user.age,
-                        form: user.form,
-                        market_value: user.base_selling_price,
-                        bid_value: user.bid_amount,
+                        bid_id: bid.id,
+                        id: bid.player_id,
+                        player_name: bid.name,
+                        club_id: bid.from_club_id,
+                        club: bid.from_club_name,
+                        age: bid.age,
+                        form: bid.form,
+                        market_value: bid.base_selling_price,
+                        bid_value: bid.bid_amount,
                     }
 
                     pageData.push({
@@ -438,28 +464,50 @@
                 let userData = await sendRequest(endpoint)
                 let pageData = []
 
-                pageData.push({
-                    title: "Current Contract Details",
-                    content: {
-                        length: userData.contract_length,
-                        salary: userData.salary
+                let newContractData = []
+
+                if (userData.club_id != null) {
+                    pageData.push({
+                        title: "Current Contract Details",
+                        content: {
+                            length: userData.contract_length,
+                            salary: userData.salary
+                        }
+                    })
+
+                    // TODO: API for contract extension details
+
+                } else {
+                    let bidsData = await sendRequest(`/bids/player/${model.currentId}`)
+                    if (bidsData.length != 0) {
+                        bidsData.forEach((bid) => {
+                            newContractData.push({
+                                bid_id: bid.id,
+                                club_id: bid.from_club_id,
+                                club_name: bid.from_club_name,
+                                length: userData.contract_length,
+                                salary: userData.salary,
+                                bid_value: bid.bid_amount,
+                            })
+                        })
                     }
-                })
+                    pageData.push({
+                        title: "Current Contract Details",
+                        value: "Not part of any club yet!"
+                    })
+                }
 
-                let newContractData = null
-
-                if (newContractData == null) {
+                if (newContractData.length == 0) {
                     pageData.push({
                         title: "Proposed Contract Details",
-                        value: "No contract extension proposed!"
+                        value: "No contract proposed by any club yet!"
                     })
                 } else {
-                    pageData.push({
-                        title: "Proposed Contract Details",
-                        content: {
-                            length: newContractData.contract_length,
-                            salary: newContractData.salary
-                        }
+                    newContractData.forEach ((contract) => {
+                        pageData.push({
+                            title: "Proposed Contract Details",
+                            content: contract,
+                        })
                     })
                 }
                 model.data[userType][pageName] = pageData;
@@ -505,15 +553,25 @@
                 let bidContainer = e.target.parentElement.parentElement
                 let playerId = parseInt(bidContainer.querySelector("#id-value").innerText)
                 let bidValue = document.getElementById("bid-" + id).value
-                
+
                 const playerNft = await model.contracts.PlayerNFT.deployed();
                 try {
-                    await playerNft.placeBid(playerId, 
-                        {from: model.currentAccount, 
+                    let result = await playerNft.placeBid(playerId,
+                        {from: model.currentAccount,
                             value: web3.utils.toWei(bidValue, 'ether')
                         })
-                    // TODO: Send API request
+
+                    let endpoint = `/bid`
+                    let body = {
+                        "bid_amount": bidValue,
+                        "player_id": playerId,
+                        "from_club_id": model.currentId
+                    }
+
+                    controller.showEmittedEvents(result)
+                    await sendRequest(endpoint, body, "POST")
                     controller.throwToast("Placed bid successfully", TOAST_TYPE.success)
+                    view.reload()
                 } catch (error) {
                     controller.throwToast("unable to place bid" + error, TOAST_TYPE.error)
                 }
@@ -524,34 +582,50 @@
                 let title = e.target.innerHTML
                 let bidContainer = e.target.parentElement.parentElement
                 let playerId = parseInt(bidContainer.querySelector("#id-value").innerText)
+                let bidId = parseInt(bidContainer.querySelector("#bid_id-value").innerText)
                 let bidValue = bidContainer.querySelector("#bid_value-value").innerText
                 let buyerId = bidContainer.querySelector("#club_id-value").innerText
                 let buyerAddress = await sendRequest(`club_addresses/${buyerId}`)
                 console.log(playerId, bidValue, buyerId, buyerAddress);
+                await controller.sendResponseToBid(title, playerId, bidValue, buyerId, buyerAddress, bidId)
+            },
 
+            sendResponseToBid: async function(title, playerId, bidValue, buyerId, buyerAddress, bidId) {
                 const playerNft = await model.contracts.PlayerNFT.deployed();
                 if (title == "Accept") {
                     try {
-                        await playerNft.acceptBid(playerId, 
+                        let result = await playerNft.acceptBid(playerId, 
                             buyerAddress, 
                             web3.utils.toWei(bidValue, 'ether'), 
                             {from:model.currentAccount}
                         )
                         await sendRequest(`players/${playerId}`, {"club_id":buyerId}, "PUT")
-                        // TODO: Send API request
+                        await sendRequest(`/bids/make-bids-inactive/${playerId}`, {}, "PUT")
+                        controller.showEmittedEvents(result)
                         controller.throwToast("Player Sold!", TOAST_TYPE.success)
+                        view.reload()
                     } catch (error) {
                         controller.throwToast("Unable to accept bid" + error, TOAST_TYPE.error)
                     }
                 } else {
-                    // TODO:
-                    console.log("reject");
+                    try {
+                        let result = await playerNft.rejectBid(playerId, 
+                            buyerAddress, 
+                            web3.utils.toWei(bidValue, 'ether'), 
+                            {from:model.currentAccount}
+                        )
+                        await sendRequest(`/bids/make-bid-inactive/${bidId}`, {}, "PUT")
+                        controller.showEmittedEvents(result)
+                        controller.throwToast("Bid Rejected!", TOAST_TYPE.success)
+                        view.reload()
+                    } catch (error) {
+                        controller.throwToast("Unable to reject bid" + error, TOAST_TYPE.error)
+                    }
                 }
             },
 
             contractBidClicked: async function(e) {
                 // TODO: Send API request
-                console.log(e);
                 let title = e.target.innerHTML
                 let bidContainer = e.target.parentElement.parentElement
                 let playerId = parseInt(bidContainer.querySelector("#id-value").innerText)
@@ -566,16 +640,39 @@
                     // Put player for Sale
                     const playerNft = await model.contracts.PlayerNFT.deployed();
                     try {
-                        await playerNft.putPlayerOnSale(playerId, {from: model.currentAccount})
+                        let result = await playerNft.putPlayerOnSale(playerId, {from: model.currentAccount})
+                        controller.showEmittedEvents(result)
                         controller.throwToast("Player put on for Sale!", TOAST_TYPE.success)
                     } catch (error) {
                         controller.throwToast("Unable to put player for sale " + error, TOAST_TYPE.error)
                     }
                 }
+            },
+
+            playerContractBidClicked: async function(e) {
+                let title = e.target.innerHTML
+                let bidContainer = e.target.parentElement.parentElement
+                let playerId = model.currentId
+                let bidElement = bidContainer.querySelector("#bid_value-value")
+                if (bidElement) {
+                    let bidId = parseInt(bidContainer.querySelector("#bid_id-value").innerText)
+                    let bidValue = bidContainer.querySelector("#bid_value-value").innerText
+                    let buyerId = bidContainer.querySelector("#club_id-value").innerText
+                    let buyerAddress = await sendRequest(`club_addresses/${buyerId}`)
+                    console.log(playerId, bidValue, buyerId, buyerAddress);
+                    await controller.sendResponseToBid(title, playerId, bidValue, buyerId, buyerAddress, bidId)
+                } else {
+                    // It is a contract extension
+                    // TODO: extend contract
+                }
             }
         }
 
         var view = {
+
+            reload: function() {
+                this.renderPage(model.userType, model.currentPage)
+            },
 
             renderRegisterView: function() {
                 const registerOptionsContainer =  document.querySelector('#register-option-container');
@@ -719,6 +816,15 @@
                             <button id="contract-reject-${ind}" type="button" class="contract-bid-button btn btn-danger">Terminate Contract</button>
                         </div>
                     `;
+                  } else if (pageName === PAGE_NAME.contractdetails) {
+                    if (cardData.title == "Proposed Contract Details" && cardData.content != null) {
+                        buttonsHtml = `
+                            <div class = "player-contract-bid-container">
+                                <button id="player-accept-${ind}" type="button" class="player-contract-bid-button btn btn-success">Accept</button>
+                                <button id="player-reject-${ind}" type="button" class="player-contract-bid-button btn btn-danger">Reject</button>
+                            </div>
+                        `;
+                    }
                   }
 
                   return `
@@ -732,7 +838,7 @@
                                     if (cardData.content != null) {
                                         let titleContent = ''
                                         Object.entries(cardData.content).forEach(([key, value]) => {
-                                            excludeList = ["id", "name", "club_id"]
+                                            excludeList = ["id", "name", "club_id", "bid_id"]
                                             if (value != null && !excludeList.includes(key)) {
                                                 titleContent += (`<div id=${key}-label  class="title-label">
                                                     ${key}:
@@ -772,6 +878,7 @@
                 `;
                 document.querySelector('.page-content').innerHTML = pageContentHtml;
                 controller.addButtonEvents()
+                model.currentPage = pageName
 
             }
 

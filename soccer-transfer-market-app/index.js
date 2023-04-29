@@ -1,8 +1,8 @@
 var express = require('express')
 const bodyParser = require('body-parser');
-const { getAllBids, getBidById, createBid, updateBid, deleteBid } = require('./apis/bids')
+const { getAllBids, getBidById, getAllBidsByClubId, getAllBidsByPlayerId, createBid, updateBid, makeBidsInactiveByPlayerId, makeBidInactive, deleteBid } = require('./apis/bids')
 const  { getAllExtensions, getExtensionById, createExtension, updateExtension, deleteExtension } = require("./apis/contract_extensions")
-const { getAllPlayers, getPlayerById, getAllPlayersByClubId, getPlayerAddressId, createPlayer, updatePlayer } = require('./apis/player')
+const { getAllPlayers, getPlayerById, getAllPlayersByClubId, getPlayersNotInClub, getPlayerAddressId, createPlayer, updatePlayer } = require('./apis/player')
 const { getAllClubs, getClubById, getClubAddressId, createClub, updateClub, deleteClub } = require('./apis/club')
 const { getClubAddressById } = require('./apis/club_addresses')
 
@@ -17,8 +17,12 @@ app.use(bodyParser.json());
 // Bids
 app.get('/bids', getAllBids);
 app.get('/bids/:id', getBidById);
+app.get('/bids/club/:id', getAllBidsByClubId);
+app.get('/bids/player/:id', getAllBidsByPlayerId);
 app.post('/bid', createBid);
 app.put('/bids/:id', updateBid);
+app.put('/bids/make-bids-inactive/:playerId', makeBidsInactiveByPlayerId);
+app.put('/bids/make-bid-inactive/:id', makeBidInactive);
 app.delete('bids/:id', deleteBid);
 
 
@@ -34,6 +38,7 @@ app.delete('extension/:id', deleteExtension);
 app.get('/players', getAllPlayers);
 app.get('/players/:id', getPlayerById);
 app.get('/players/club/:clubId', getAllPlayersByClubId);
+app.get('/players/not-in-club/:clubId', getPlayersNotInClub);
 app.get('/players/address/:address', getPlayerAddressId);
 app.post('/players', createPlayer);
 app.put('/players/:id', updatePlayer);

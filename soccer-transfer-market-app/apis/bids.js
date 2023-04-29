@@ -39,10 +39,53 @@ const getBidById = async (req, res) => {
   }
 };
 
+const getAllBidsByClubId = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `
+      SELECT bids.id, players.id as player_id, players.name, players.club_id, bids.from_club_id, clubs.name as from_club_name, players.age, players.form, players.base_selling_price, bids.bid_amount
+      FROM bids
+      INNER JOIN players ON bids.player_id = players.id
+      LEFT JOIN clubs ON bids.from_club_id = clubs.id
+      WHERE bids.to_club_id = ? AND bids.active = true
+    `;
+    const bids = await pool.query(query, id);
+    res.json(bids);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const getAllBidsByPlayerId = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = `
+      SELECT bids.*, clubs1.name as from_club_name, clubs2.name as to_club_name
+      FROM bids
+      INNER JOIN clubs as clubs1 ON bids.from_club_id = clubs1.id
+      LEFT JOIN clubs as clubs2 ON bids.to_club_id = clubs2.id
+      WHERE bids.player_id = ? AND bids.active = true
+    `;
+    const bids = await pool.query(query, id);
+    res.json(bids);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // POST new bid
 const createBid = async (req, res) => {
-  const { bid_amount, player_id, from_club_id, to_club_id } = req.body;
+  const { bid_amount, player_id, from_club_id } = req.body;
   try {
+    const playerQuery = `
+      SELECT club_id
+      FROM players
+      WHERE id = ?
+    `;
+    const playerResult = await pool.query(playerQuery, [player_id]);
+    const to_club_id = playerResult[0].club_id || null;
     const result = await pool.query('INSERT INTO bids (bid_amount, player_id, from_club_id, to_club_id) VALUES (?, ?, ?, ?)', [bid_amount, player_id, from_club_id, to_club_id]);
     const newBid = { id: result.insertId, bid_amount, player_id, from_club_id, to_club_id };
     res.status(201).json(newBid);
@@ -72,6 +115,40 @@ const updateBid = async (req, res) => {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
+};
+
+const makeBidInactive = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const query = `
+      UPDATE bids
+      SET active = false
+      WHERE id = ?;
+    `;
+    await pool.query(query, [id]);
+    res.json({ message: `Bid has been made inactive.` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const makeBidsInactiveByPlayerId = async (req, res) => {
+  const { playerId } = req.params;
+
+  try {
+    const query = `
+      UPDATE bids
+      SET active = false
+      WHERE player_id = ? AND active = true;
+    `;
+    await pool.query(query, [playerId]);
+    res.json({ message: `All active bids for player with ID ${playerId} have been made inactive.` });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
 
 
@@ -105,5 +182,5 @@ const deleteBid = async (req, res) => {
   }
 };
 
-module.exports = { getAllBids, getBidById, createBid, updateBid, deleteBid, updateBidActiveStatus};
+module.exports = { getAllBids, getBidById, getAllBidsByClubId, getAllBidsByPlayerId, createBid, updateBid, makeBidsInactiveByPlayerId, makeBidInactive, deleteBid, updateBidActiveStatus};
 

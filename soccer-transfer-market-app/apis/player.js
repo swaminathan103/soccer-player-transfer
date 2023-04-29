@@ -29,9 +29,6 @@ const getPlayerById = async (req, res) => {
     const id = req.params.id;
     try {
       const player = await pool.query('SELECT p.*, c.name as club_name, c.location as club_location FROM players p LEFT JOIN clubs c ON p.club_id = c.id WHERE p.id = ?', [id]);
-    //   const clubId = player[0].club_id;
-    //   const club = await pool.query('SELECT * FROM clubs WHERE id = ?', [clubId]);
-    //   const playerWithClub = { ...player[0], club: club[0] };
       res.json(player[0]);
     } catch (err) {
       console.error(err.message);
@@ -41,7 +38,6 @@ const getPlayerById = async (req, res) => {
 
 const getAllPlayersByClubId = async (req, res) => {
     const clubId = req.params.clubId
-    console.log(clubId);
     try {
       const query = `
         SELECT *
@@ -49,13 +45,29 @@ const getAllPlayersByClubId = async (req, res) => {
         WHERE club_id = ?
       `;
       const rows = await pool.query(query, clubId);
-      console.log(rows);
       res.status(200).json(rows);
     } catch (error) {
       console.error(error);
       throw new Error('Error fetching players');
     }
 };
+
+const getPlayersNotInClub = async (req, res) => {
+    const clubId = req.params.clubId;
+    try {
+      const query = `
+        SELECT *
+        FROM players
+        WHERE club_id != ? OR club_id IS NULL
+      `;
+      const rows = await pool.query(query, clubId);
+      res.status(200).json(rows);
+    } catch (error) {
+      console.error(error);
+      throw new Error('Error fetching players');
+    }
+  };
+  
 
 // Create a new player
 const createPlayer = async (req, res) => {
@@ -110,5 +122,5 @@ const getPlayerAddressId = async (req, res) => {
 };
   
 
-module.exports = { getAllPlayers, getPlayerById, getAllPlayersByClubId, getPlayerAddressId, createPlayer, updatePlayer }
+module.exports = { getAllPlayers, getPlayerById, getAllPlayersByClubId, getPlayersNotInClub, getPlayerAddressId, createPlayer, updatePlayer }
 
