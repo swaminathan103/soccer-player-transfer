@@ -36,4 +36,71 @@ html, body {
   button:hover {
     background-color: #0062cc;
   }
+
+  .container-fluid {
+    margin-bottom: 5%;
+  }
+
+  .card {
+    max-width: 90%;
+    border-radius: 1rem;
+    font-size: x-large;
+    padding-left: 20px;
+  }
+
+  .card-text {
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    flex: 0 0 50%;
+    margin-right: 20px;
+  }
+  
+  .title-container {
+    flex: 0 0 33%;
+    display: flex;
+    justify-content: space-between;
+    margin-right: 30px;
+  }
+
+  .title-label {
+    /* display: inline; */
+    font-weight: bold;
+  }
+  
+  .title-value {
+    margin-left: 10px;
+  }
+  
+  .card-body {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .your-bid-container {
+    display: flex;
+    align-items: flex-end;
+    justify-content: end;
+  }
+  
+  .your-bid-container label {
+    margin-right: 10px;
+  }
+
+  .your-bid-container > input {
+    width: 30%;
+  }
+
+  .your-bid-button {
+    margin-left: 2%;
+  }
+
+  .empty-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+  }
+  
   

@@ -35,20 +35,7 @@
                 },
                 players: {
                     home: [],
-                    contractdetails: [
-                        {
-                        label: 'Club',
-                        content: 'Manchester United',
-                        },
-                        {
-                        label: 'Salary',
-                        content: '$10 million per year',
-                        },
-                        {
-                        label: 'Contract Length',
-                        content: '5 years',
-                        },
-                    ],
+                    contractdetails: [],
                 },
             }
         }
@@ -151,8 +138,9 @@
             },
 
             showEmittedEvents: function (result) {
+                let excludeList = ["approval", "transfer"]
                 result.logs.forEach((log) => {
-                    if (log.event.toLowerCase() != "transfer") {
+                    if (!excludeList.includes(log.event.toLowerCase())) {
                         this.throwToast("EVENT - " + log.event)
                     }
                 })
@@ -317,7 +305,6 @@
                 if (player == true) {
                     model.userType = USER_TYPE.player
                     await this.setCurrentId()
-                    model.owner = await playerNft.getPlayerOwner(model.currentId)
                     return
                 }
 
@@ -370,6 +357,8 @@
                 }
 
                 if (userType == USER_TYPE.player) {
+                    const playerNft = await model.contracts.PlayerNFT.deployed();
+                    model.owner = await playerNft.getPlayerOwner(model.currentId)
                     pageData.push({
                         title: "NFT Status",
                         value: "Created"
@@ -394,7 +383,8 @@
                         player_name: user.name,
                         club: user.club_name,
                         age: user.age,
-                        market_value: user.base_selling_price
+                        form: user.form,
+                        market_value: user.base_selling_price + " ETH"
                     }
 
                     pageData.push({
@@ -646,7 +636,16 @@
                 let playerId = parseInt(bidContainer.querySelector("#id-value").innerText)
 
                 if (title == "Terminate Contract") {
-                    // TODO:
+                    const playerNft = await model.contracts.PlayerNFT.deployed();
+                    try {
+                        let result = await playerNft.transferOwnership(playerId, {from:model.currentAccount})
+                        await sendRequest(`players/${playerId}`, {club_id: null}, "PUT")
+                        controller.showEmittedEvents(result)
+                        controller.throwToast("PLayer contract terminated successfully! The player is no longer part of the club!", TOAST_TYPE.success)
+                        view.reload()
+                    } catch (error) {
+                        controller.throwToast("Unable to Terminate Contract " + error, TOAST_TYPE.error)
+                    }
 
                 } else if (title == "Propose New Contract") {
                     let proposeContractSubmit = document.getElementById('submitProposalBtn')
@@ -875,7 +874,7 @@
                         <div class = "your-bid-container">
                             <label>Your Bid: </label>
                             <input id="bid-${ind}" type="number" step="0.001" name="player-bid" required>
-                            <button id="submit-${ind}" class="your-bid-button" type="button" class="btn btn-success">Submit</button>
+                            <button id="submit-${ind}" class="your-bid-button btn btn-primary" type="button" class="btn btn-success">Submit</button>
                         </div>
                     `;
                   } else if (pageName === PAGE_NAME.bidsreceived) {
@@ -905,11 +904,12 @@
                   }
 
                   return `
-                    <div class="card mb-3 ${cardData.classNames ? cardData.classNames : ''}">
+                    <div class="card mx-auto mb-3 ${cardData.classNames ? cardData.classNames : ''}">
                       <div class="card-body">
                         ${cardData.title ? `<div class="card-title">${cardData.title}</div>` : ''}
                         ${
-                            `<div class="card-text">${
+                            `<div class="card-text">
+                            ${
                                 // cardData.content ? cardData.content : cardData.value
                                 (() => {
                                     if (cardData.content != null) {
@@ -917,6 +917,7 @@
                                         Object.entries(cardData.content).forEach(([key, value]) => {
                                             excludeList = ["id", "name", "club_id", "bid_id"]
                                             if (value != null && !excludeList.includes(key)) {
+                                                titleContent += `<div class="title-container">`
                                                 titleContent += (`<div id=${key}-label  class="title-label">
                                                     ${key}:
                                                 </div>
@@ -926,10 +927,12 @@
                                                 </div>
                                                 `)
                                             } else {
+                                                titleContent += `<div class="title-container" style="display:none;">`
                                                 titleContent += (`<div id=${key}-label class="title-label" style="display:none;">${key}</div>
                                                     <div id=${key}-value class="title-value" style="display:none;">${value}</div>
                                             `)
                                             }
+                                            titleContent += `</div>`
                                         })
                                         return titleContent
                                     }
@@ -950,7 +953,6 @@
 
                 // Render the page content
                 const pageContentHtml = `
-                  <h1>${pageTitle}</h1>
                   ${cardHtml.join('')}
                 `;
                 document.querySelector('.page-content').innerHTML = pageContentHtml;

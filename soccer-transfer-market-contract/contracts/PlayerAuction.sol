@@ -142,6 +142,7 @@ function findBidIndex(address bidder, uint256 playerId, uint256 amt) public view
 function transferOwnership(uint256 playerId) external onlyOwnerOf(playerId) {
     transferFrom(playerOwners[playerId], playerAddress[playerId], playerId);
     playerOnSale[playerId] = true;
+    playerOwners[playerId] = playerAddress[playerId];
     emit playerOwnershipTransfered(playerId);
     emit PlayerPutOnSale(playerId);
 
