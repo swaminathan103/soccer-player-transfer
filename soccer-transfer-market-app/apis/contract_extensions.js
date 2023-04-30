@@ -3,10 +3,10 @@ var util = require('util')
 
 // Create a connection pool
 const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'root',
-  database: 'soccer-player-transfer',
+  host: 'sql9.freemysqlhosting.net',
+  user: 'sql9615119',
+  password: 'wE8rIRsxh4',
+  database: 'sql9615119',
   connectionLimit: 10
 });
 
@@ -27,7 +27,7 @@ const getAllExtensions = async (req, res) => {
 const getExtensionById = async (req, res) => {
   const { id } = req.params;
   try {
-    const extension = await pool.query('SELECT * FROM contract_extensions WHERE player_id = ? AND active = 1', [id]);
+    const extension = await pool.query('SELECT ce.*, c.name as club_name FROM contract_extensions ce JOIN clubs c ON ce.club_id = c.id WHERE ce.player_id = ? AND ce.active = 1', [id]);
     if (extension.length) {
       res.json(extension);
     } else {

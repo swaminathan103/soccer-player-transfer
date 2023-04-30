@@ -3,10 +3,10 @@ var util = require('util')
 
 // Create a connection pool
 const pool = mysql.createPool({
-  host: '127.0.0.1',
-  user: 'root',
-  password: 'root',
-  database: 'soccer-player-transfer',
+  host: 'sql9.freemysqlhosting.net',
+  user: 'sql9615119',
+  password: 'wE8rIRsxh4',
+  database: 'sql9615119',
   connectionLimit: 10
 });
 
@@ -28,7 +28,7 @@ const getAllPlayers = async (req, res) => {
 const getPlayerById = async (req, res) => {
     const id = req.params.id;
     try {
-      const player = await pool.query('SELECT p.*, c.name as club_name, c.location as club_location FROM players p LEFT JOIN clubs c ON p.club_id = c.id WHERE p.id = ?', [id]);
+      const player = await pool.query('SELECT c.name as club_name, p.* FROM players p LEFT JOIN clubs c ON p.club_id = c.id WHERE p.id = ?', [id]);
       res.json(player[0]);
     } catch (err) {
       console.error(err.message);

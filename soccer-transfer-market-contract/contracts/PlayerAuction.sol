@@ -172,5 +172,3 @@ function transferOwnership(uint256 playerId) external onlyOwnerOf(playerId) {
 
     
 }
-
-list all the modifiers in the above code the below format

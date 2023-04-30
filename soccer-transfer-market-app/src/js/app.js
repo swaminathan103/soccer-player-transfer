@@ -328,6 +328,9 @@
                 let userData = await sendRequest(endpoint)
                 let bids = await sendRequest(`/bids/club/${model.currentId}`)
                 await controller.getCurrentWalletBalance()
+                delete userData.contract_length
+                delete userData.salary
+
                 let pageData = [{
                     title: userData.name,
                     content: userData,
@@ -384,6 +387,7 @@
                         club: user.club_name,
                         age: user.age,
                         form: user.form,
+                        player_rating: user.player_rating,
                         market_value: user.base_selling_price + " ETH"
                     }
 
@@ -477,6 +481,7 @@
                         contractData.forEach((contract) => {
                             newContractData.push({
                                 contract_id: contract.id,
+                                club: contract.club_name,
                                 length: contract.length,
                                 salary: contract.salary_increase
                             })
@@ -598,7 +603,7 @@
 
             sendResponseToBid: async function(title, playerId, bidValue, buyerId, buyerAddress, bidId) {
                 const playerNft = await model.contracts.PlayerNFT.deployed();
-                if (title == "Accept") {
+                if (title.toLowerCase().includes("accept")) {
                     try {
                         let result = await playerNft.acceptBid(playerId, 
                             buyerAddress, 
@@ -872,7 +877,7 @@
                   if (pageName === PAGE_NAME.marketplace) {
                     buttonsHtml = `
                         <div class = "your-bid-container">
-                            <label>Your Bid: </label>
+                            <label>Your Bid (in ETH): </label>
                             <input id="bid-${ind}" type="number" step="0.001" name="player-bid" required>
                             <button id="submit-${ind}" class="your-bid-button btn btn-primary" type="button" class="btn btn-success">Submit</button>
                         </div>
@@ -880,8 +885,8 @@
                   } else if (pageName === PAGE_NAME.bidsreceived) {
                     buttonsHtml = `
                         <div class = "response-bid-container">
-                            <button id="accept-${ind}" type="button" class="response-bid-button btn btn-success">Accept</button>
-                            <button id="reject-${ind}" type="button" class="response-bid-button btn btn-danger">Reject</button>
+                            <button id="accept-${ind}" type="button" class="response-bid-button btn btn-success">Accept Bid</button>
+                            <button id="reject-${ind}" type="button" class="response-bid-button btn btn-danger">Reject Bid</button>
                         </div>
                     `;
                   } else if (pageName === 'yourplayers') {
@@ -915,11 +920,11 @@
                                     if (cardData.content != null) {
                                         let titleContent = ''
                                         Object.entries(cardData.content).forEach(([key, value]) => {
-                                            excludeList = ["id", "name", "club_id", "bid_id"]
+                                            excludeList = ["id", "name", "club_id", "bid_id", "contract_id"]
                                             if (value != null && !excludeList.includes(key)) {
                                                 titleContent += `<div class="title-container">`
                                                 titleContent += (`<div id=${key}-label  class="title-label">
-                                                    ${key}:
+                                                    ${KEY_LABEL_MAP[key]}:
                                                 </div>
     
                                                 <div id=${key}-value class="title-value">

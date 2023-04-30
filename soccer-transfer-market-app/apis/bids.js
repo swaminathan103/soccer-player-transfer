@@ -3,10 +3,10 @@ var util = require('util')
 
 // Create a connection pool
 const pool = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'root',
-  database: 'soccer-player-transfer',
+  host: 'sql9.freemysqlhosting.net',
+  user: 'sql9615119',
+  password: 'wE8rIRsxh4',
+  database: 'sql9615119',
   connectionLimit: 10
 });
 
