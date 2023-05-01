@@ -610,7 +610,7 @@
                             web3.utils.toWei(bidValue, 'ether'), 
                             {from:model.currentAccount}
                         )
-                        await sendRequest(`players/${playerId}`, {"club_id":buyerId}, "PUT")
+                        await sendRequest(`players/${playerId}`, {"club_id":buyerId, "base_selling_price":bidValue}, "PUT")
                         await sendRequest(`/bids/make-bids-inactive/${playerId}`, {}, "PUT")
                         controller.showEmittedEvents(result)
                         controller.throwToast("Player Sold!", TOAST_TYPE.success)

@@ -11,6 +11,7 @@ html, body {
     justify-content: center;
     align-items: center;
     background-color: #f5f5f5;
+    margin-top: -5%;
   }
 
   .nav-item {
