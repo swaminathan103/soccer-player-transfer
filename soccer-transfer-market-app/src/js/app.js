@@ -4,7 +4,7 @@
     function() {
 
         var model = {
-            url: 'http://127.0.0.1:7545',
+            url: 'https://4ff3-2620-cc-8000-1c83-4473-d707-219f-c4c.ngrok-free.app',
             web3: null,
             currentAccount: null,
             currentBalance: "",
