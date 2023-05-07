@@ -41,10 +41,10 @@
  * https://trufflesuite.com/docs/truffle/getting-started/using-the-truffle-dashboard/
  */
 
-// require('dotenv').config();
-// const { MNEMONIC, PROJECT_ID } = process.env;
+ require('dotenv').config();
+ const { MNEMONIC, INFURA_API_KEY } = process.env;
 
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
+ const HDWalletProvider = require('@truffle/hdwallet-provider');
 
 module.exports = {
   /**
@@ -71,6 +71,11 @@ module.exports = {
      gas: 4500000,
      gasPrice: 10000000000,
     },
+    sepolia: {
+      provider: () => new HDWalletProvider(MNEMONIC, INFURA_API_KEY),
+      network_id: '11155111',
+      gas: 4465030
+    }
     //
     // An additional network, but with some advanced options…
     // advanced: {
