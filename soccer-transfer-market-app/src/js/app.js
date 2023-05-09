@@ -4,8 +4,10 @@
     function() {
 
         var model = {
-            url: 'http://127.0.0.1:7545',
+            url: 'https://sepolia.infura.io/v3/2f2aa5a210f9450f9085e92e525eab49',
             web3: null,
+            web3Provider: null,
+            address:"0x2872bA775227bAfdB7b0d152383C574Ec99123De",
             currentAccount: null,
             currentBalance: "",
             owner: null,
@@ -55,8 +57,16 @@
 
             initWeb3: async function() {
                 console.log("Initialising Web3");
-                web3 = new Web3(new Web3.providers.HttpProvider(model.url));
-                web3 = web3
+                if (typeof web3 !== 'undefined') {
+                    model.web3Provider = web3.currentProvider;
+                } 
+                else {
+                    model.web3Provider = new Web3.providers.HttpProvider(model.url);
+                }
+
+                web3 = new Web3(model.web3Provider);
+                // web3 = new Web3(new Web3.providers.HttpProvider(model.url));
+                // web3 = web3
                 await ethereum.enable();
                 if (window.ethereum) {
                     let accounts = await ethereum.request({ method: 'eth_requestAccounts' })
@@ -69,9 +79,9 @@
 
             initContract: async function() {
                 console.log("Initialising contracts");
-                web3Provider = new Web3.providers.HttpProvider(model.url);
+                // web3Provider = new Web3.providers.HttpProvider(model.url);
                 model.contracts.PlayerNFT = await this.loadContract();
-                model.contracts.PlayerNFT.setProvider( web3Provider);
+                model.contracts.PlayerNFT.setProvider( model.web3Provider);
             },
 
             initOptions: function() {
